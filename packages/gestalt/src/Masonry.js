@@ -1,27 +1,27 @@
 // @flow
-import * as React from 'react';
-import PropTypes from 'prop-types';
-import debounce from './debounce.js';
-import FetchItems from './FetchItems.js';
-import styles from './Masonry.css';
-import ScrollContainer from './ScrollContainer.js';
-import throttle from './throttle.js';
-import type { Cache } from './Cache.js';
-import MeasurementStore from './MeasurementStore.js';
+import * as React from "react";
+import PropTypes from "prop-types";
+import debounce from "./debounce.js";
+import FetchItems from "./FetchItems.js";
+import styles from "./Masonry.css";
+import ScrollContainer from "./ScrollContainer.js";
+import throttle from "./throttle.js";
+import type { Cache } from "./Cache.js";
+import MeasurementStore from "./MeasurementStore.js";
 import {
   getElementHeight,
   getRelativeScrollTop,
-  getScrollPos,
-} from './scrollUtils.js';
+  getScrollPos
+} from "./scrollUtils.js";
 import {
   DefaultLayoutSymbol,
-  UniformRowLayoutSymbol,
-} from './legacyLayoutSymbols.js';
-import defaultLayout from './defaultLayout.js';
-import uniformRowLayout from './uniformRowLayout.js';
-import fullWidthLayout from './fullWidthLayout.js';
-import LegacyMasonryLayout from './layouts/MasonryLayout.js';
-import LegacyUniformRowLayout from './layouts/UniformRowLayout.js';
+  UniformRowLayoutSymbol
+} from "./legacyLayoutSymbols.js";
+import defaultLayout from "./defaultLayout.js";
+import uniformRowLayout from "./uniformRowLayout.js";
+import fullWidthLayout from "./fullWidthLayout.js";
+import LegacyMasonryLayout from "./layouts/MasonryLayout.js";
+import LegacyUniformRowLayout from "./layouts/UniformRowLayout.js";
 
 type Layout =
   | typeof DefaultLayoutSymbol
@@ -34,7 +34,7 @@ type Props<T> = {|
   comp: React.ComponentType<{
     data: T,
     itemIdx: number,
-    isMeasuring: boolean,
+    isMeasuring: boolean
   }>,
   flexible?: boolean,
   gutterWidth?: number,
@@ -42,19 +42,20 @@ type Props<T> = {|
   measurementStore: Cache<T, *>,
   minCols: number,
   layout?: Layout,
+  isAdmin: boolean,
   // Support legacy loadItems usage.
   // TODO: Simplify non falsey flowtype.
   loadItems?:
     | false
     | ((
         ?{
-          from: number,
+          from: number
         }
       ) => void | boolean | {}),
   scrollContainer?: () => HTMLElement,
   virtualBoundsTop?: number,
   virtualBoundsBottom?: number,
-  virtualize?: boolean,
+  virtualize?: boolean
 |};
 
 type State<T> = {|
@@ -62,7 +63,7 @@ type State<T> = {|
   isFetching: boolean,
   items: Array<T>,
   scrollTop: number,
-  width: ?number,
+  width: ?number
 |};
 
 const RESIZE_DEBOUNCE = 300;
@@ -98,7 +99,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
     }
 
     this.setState({
-      scrollTop: getScrollPos(scrollContainer),
+      scrollTop: getScrollPos(scrollContainer)
     });
   });
 
@@ -107,6 +108,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
   }, 0);
 
   static propTypes = {
+    isAdmin: PropTypes.bool,
     /**
      * The preferred/target item width. If `flexible` is set, the item width will
      * grow to fill column space, and shrink to fit if below min columns.
@@ -146,7 +148,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
     layout: PropTypes.oneOfType([
       PropTypes.instanceOf(LegacyMasonryLayout),
       PropTypes.instanceOf(LegacyUniformRowLayout),
-      PropTypes.symbol,
+      PropTypes.symbol
     ]),
 
     /**
@@ -170,7 +172,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
     /**
      * Whether or not to use actual virtualization
      */
-    virtualize: PropTypes.bool,
+    virtualize: PropTypes.bool
   };
 
   static defaultProps = {
@@ -180,20 +182,8 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
     minCols: 3,
     layout: DefaultLayoutSymbol,
     loadItems: () => {},
-    virtualize: false,
+    virtualize: false
   };
-
-  containerHeight: number;
-
-  containerOffset: number;
-
-  gridWrapper: ?HTMLElement;
-
-  insertAnimationFrame: AnimationFrameID;
-
-  measureTimeout: TimeoutID;
-
-  scrollContainer: ?ScrollContainer;
 
   constructor(props: Props<T>) {
     super(props);
@@ -210,6 +200,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
       items: props.items,
       scrollTop: 0,
       width: undefined,
+      isAdmin: props.isAdmin
     };
   }
 
@@ -217,7 +208,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
    * Adds hooks after the component mounts.
    */
   componentDidMount() {
-    window.addEventListener('resize', this.handleResize);
+    window.addEventListener("resize", this.handleResize);
 
     this.measureContainer();
 
@@ -231,7 +222,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
 
     this.setState(prevState => ({
       scrollTop,
-      width: this.gridWrapper ? this.gridWrapper.clientWidth : prevState.width,
+      width: this.gridWrapper ? this.gridWrapper.clientWidth : prevState.width
     }));
   }
 
@@ -254,7 +245,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
     ) {
       this.insertAnimationFrame = requestAnimationFrame(() => {
         this.setState({
-          hasPendingMeasurements,
+          hasPendingMeasurements
         });
       });
     }
@@ -273,7 +264,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
     this.handleResize.clearTimeout();
     this.updateScrollPosition.clearTimeout();
 
-    window.removeEventListener('resize', this.handleResize);
+    window.removeEventListener("resize", this.handleResize);
   }
 
   static getDerivedStateFromProps(props: Props<T>, state: State<T>) {
@@ -292,7 +283,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
         return {
           hasPendingMeasurements,
           items,
-          isFetching: false,
+          isFetching: false
         };
       }
 
@@ -306,7 +297,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
         return {
           hasPendingMeasurements,
           items,
-          isFetching: false,
+          isFetching: false
         };
       }
     }
@@ -316,14 +307,14 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
       return {
         hasPendingMeasurements,
         items,
-        isFetching: false,
+        isFetching: false
       };
     }
     if (hasPendingMeasurements !== state.hasPendingMeasurements) {
       // make sure we always update hasPendingMeasurements
       return {
         hasPendingMeasurements,
-        items,
+        items
       };
     }
 
@@ -341,15 +332,27 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
 
   fetchMore = () => {
     const { loadItems } = this.props;
-    if (loadItems && typeof loadItems === 'function') {
+    if (loadItems && typeof loadItems === "function") {
       this.setState(
         {
-          isFetching: true,
+          isFetching: true
         },
         () => loadItems({ from: this.props.items.length })
       );
     }
   };
+
+  containerHeight: number;
+
+  containerOffset: number;
+
+  gridWrapper: ?HTMLElement;
+
+  insertAnimationFrame: AnimationFrameID;
+
+  measureTimeout: TimeoutID;
+
+  scrollContainer: ?ScrollContainer;
 
   measureContainer() {
     if (this.scrollContainer != null) {
@@ -384,6 +387,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
       virtualize,
       virtualBoundsTop,
       virtualBoundsBottom,
+      isAdmin
     } = this.props;
     const { top, left, width, height } = position;
 
@@ -411,7 +415,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
       <div
         key={`item-${idx}`}
         className={[styles.Masonry__Item, styles.Masonry__Item__Mounted].join(
-          ' '
+          " "
         )}
         data-grid-item
         style={{
@@ -420,10 +424,15 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
           transform: `translateX(${left}px) translateY(${top}px)`,
           WebkitTransform: `translateX(${left}px) translateY(${top}px)`,
           width: layoutNumberToCssDimension(width),
-          height: layoutNumberToCssDimension(height),
+          height: layoutNumberToCssDimension(height)
         }}
       >
-        <Component data={itemData} itemIdx={idx} isMeasuring={false} />
+        <Component
+          data={itemData}
+          itemIdx={idx}
+          isMeasuring={false}
+          isAdmin={isAdmin}
+        />
       </div>
     );
 
@@ -431,6 +440,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
   };
 
   render() {
+    console.log("Masonry Mounted");
     const {
       columnWidth,
       comp: Component,
@@ -439,6 +449,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
       measurementStore,
       items,
       minCols,
+      isAdmin
     } = this.props;
     const { hasPendingMeasurements, width } = this.state;
 
@@ -449,7 +460,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
         cache: measurementStore,
         minCols,
         idealColumnWidth: columnWidth,
-        width,
+        width
       });
     } else if (
       this.props.layout === UniformRowLayoutSymbol ||
@@ -460,7 +471,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
         columnWidth,
         gutter,
         minCols,
-        width,
+        width
       });
     } else {
       layout = defaultLayout({
@@ -468,7 +479,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
         columnWidth,
         gutter,
         minCols,
-        width,
+        width
       });
     }
 
@@ -479,39 +490,46 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
       gridBody = (
         <div
           className={styles.Masonry}
-          style={{ height: 0, width: '100%' }}
+          style={{ height: 0, width: "100%" }}
           ref={this.setGridWrapperRef}
         >
-          {items.filter(item => item).map((item, i) => (
-            <div // keep this in sync with renderMasonryComponent
-              className="static"
-              data-grid-item
-              key={i}
-              style={{
-                top: 0,
-                left: 0,
-                transform: 'translateX(0px) translateY(0px)',
-                WebkitTransform: 'translateX(0px) translateY(0px)',
-                width: flexible
-                  ? undefined
-                  : layoutNumberToCssDimension(columnWidth), // we can't set a width for server rendered flexible items
-              }}
-              ref={el => {
-                if (el && !flexible) {
-                  // only measure flexible items on client
-                  measurementStore.set(item, el.clientHeight);
-                }
-              }}
-            >
-              <Component data={item} itemIdx={i} isMeasuring={false} />
-            </div>
-          ))}
+          {items
+            .filter(item => item)
+            .map((item, i) => (
+              <div // keep this in sync with renderMasonryComponent
+                className="static"
+                data-grid-item
+                key={i}
+                style={{
+                  top: 0,
+                  left: 0,
+                  transform: "translateX(0px) translateY(0px)",
+                  WebkitTransform: "translateX(0px) translateY(0px)",
+                  width: flexible
+                    ? undefined
+                    : layoutNumberToCssDimension(columnWidth) // we can't set a width for server rendered flexible items
+                }}
+                ref={el => {
+                  if (el && !flexible) {
+                    // only measure flexible items on client
+                    measurementStore.set(item, el.clientHeight);
+                  }
+                }}
+              >
+                <Component
+                  data={item}
+                  itemIdx={i}
+                  isMeasuring={false}
+                  isAdmin={isAdmin}
+                />
+              </div>
+            ))}
         </div>
       );
     } else if (width == null) {
       // When the width is empty (usually after a re-mount) render an empty
       // div to collect the width for layout
-      gridBody = <div style={{ width: '100%' }} ref={this.setGridWrapperRef} />;
+      gridBody = <div style={{ width: "100%" }} ref={this.setGridWrapperRef} />;
     } else {
       // Full layout is possible
       const itemsToRender = items.filter(
@@ -528,7 +546,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
         ? Math.max(...positions.map(pos => pos.top + pos.height))
         : 0;
       gridBody = (
-        <div style={{ width: '100%' }} ref={this.setGridWrapperRef}>
+        <div style={{ width: "100%" }} ref={this.setGridWrapperRef}>
           <div className={styles.Masonry} style={{ height, width }}>
             {itemsToRender.map((item, i) =>
               this.renderMasonryComponent(item, i, positions[i])
@@ -545,12 +563,12 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
                 <div
                   key={`measuring-${measurementIndex}`}
                   style={{
-                    visibility: 'hidden',
-                    position: 'absolute',
+                    visibility: "hidden",
+                    position: "absolute",
                     top: layoutNumberToCssDimension(position.top),
                     left: layoutNumberToCssDimension(position.left),
                     width: layoutNumberToCssDimension(position.width),
-                    height: layoutNumberToCssDimension(position.height),
+                    height: layoutNumberToCssDimension(position.height)
                   }}
                   ref={el => {
                     if (el) {
@@ -562,6 +580,7 @@ export default class Masonry<T> extends React.Component<Props<T>, State<T>> {
                     data={data}
                     itemIdx={measurementIndex}
                     isMeasuring
+                    isAdmin={isAdmin}
                   />
                 </div>
               );
